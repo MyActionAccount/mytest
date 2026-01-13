@@ -152,6 +152,36 @@ python linux_do_gui.py
 3. **风险提示**：使用自动化工具存在一定风险，请自行承担
 4. **登录安全**：程序不会保存您的账号密码，登录在浏览器中完成
 
+##  macOS / Linux 版本
+
+  由于 PyInstaller 不支持跨平台打包（Windows 上无法打包 macOS/Linux 版本），我创建了：
+
+  1. build.py - 通用打包脚本，在对应系统上运行即可自动打包
+  2. BUILD_GUIDE.md - 详细的打包指南，包含：
+    - macOS 打包步骤
+    - Linux 打包步骤
+    - 环境准备命令
+    - 常见问题解决
+
+### 在 macOS 上打包
+
+  pip3 install DrissionPage pyinstaller
+  python3 build.py
+
+### 在 Linux 上打包
+
+  pip3 install DrissionPage pyinstaller
+  python3 build.py
+
+### 项目文件结构
+
+  linuxdo/
+  ├── linux_do_gui.py           # 主程序
+  ├── build.py                  # 打包脚本
+  ├── README.md                 # 项目说明
+  └── BUILD_GUIDE.md            # 打包指南
+
+
 ## 技术栈
 
 - **Python 3**：主要开发语言
@@ -185,3 +215,4 @@ MIT License
 <p align="center">
   <sub>如果觉得有用，欢迎 Star 支持一下</sub>
 </p>
+
