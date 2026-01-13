@@ -628,40 +628,153 @@ class GUI:
     def __init__(s):
         s.rt = tk.Tk()
         s.rt.title("Linux.do 刷帖助手 v8.0")
-        s.rt.geometry("900x900")
-        s.rt.minsize(900, 800)  # 设置最小窗口大小
+        s.rt.geometry("750x850")
+        s.rt.minsize(750, 750)  # 设置最小窗口大小
         s.rt.configure(bg="#1a1a2e")
+
+        # 自定义标题栏
+        s.rt.overrideredirect(True)  # 移除默认标题栏
+
         s.cats = [c.copy() for c in CATS]
         s.cfg = CFG.copy()
         s.bot = None
         s.th = None
         s.req_labels = {}  # 升级要求标签
         s.initial_requirements = []  # 初始升级要求
+
+        # 窗口拖动相关
+        s._drag_x = 0
+        s._drag_y = 0
+
         s._ui()
 
+        # 窗口居中
+        s._center_window()
+
+    def _center_window(s):
+        """窗口居中显示"""
+        s.rt.update_idletasks()
+        w = s.rt.winfo_width()
+        h = s.rt.winfo_height()
+        sw = s.rt.winfo_screenwidth()
+        sh = s.rt.winfo_screenheight()
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        s.rt.geometry(f"{w}x{h}+{x}+{y}")
+
+    def _start_drag(s, event):
+        """开始拖动窗口"""
+        s._drag_x = event.x
+        s._drag_y = event.y
+
+    def _do_drag(s, event):
+        """拖动窗口"""
+        x = s.rt.winfo_x() + event.x - s._drag_x
+        y = s.rt.winfo_y() + event.y - s._drag_y
+        s.rt.geometry(f"+{x}+{y}")
+
+    def _minimize(s):
+        """最小化窗口"""
+        s.rt.overrideredirect(False)
+        s.rt.iconify()
+        s.rt.bind("<Map>", s._on_restore)
+
+    def _on_restore(s, event):
+        """恢复窗口"""
+        s.rt.overrideredirect(True)
+        s.rt.unbind("<Map>")
+
+    def _close(s):
+        """关闭窗口"""
+        if s.bot:
+            s.bot.stop()
+        s.rt.destroy()
+
     def _ui(s):
-        # 顶部标题栏
-        top = tk.Frame(s.rt, bg="#1a1a2e", pady=10)
-        top.pack(fill=tk.X, padx=15)
+        # 自定义标题栏
+        title_bar = tk.Frame(s.rt, bg="#0f3460", height=40)
+        title_bar.pack(fill=tk.X)
+        title_bar.pack_propagate(False)
+
+        # 标题栏可拖动
+        title_bar.bind("<Button-1>", s._start_drag)
+        title_bar.bind("<B1-Motion>", s._do_drag)
+
+        # 左侧图标和标题
+        title_left = tk.Frame(title_bar, bg="#0f3460")
+        title_left.pack(side=tk.LEFT, padx=10)
+
         tk.Label(
-            top,
-            text="Linux.do 刷帖助手",
-            font=("Microsoft YaHei UI", 16, "bold"),
-            bg="#1a1a2e",
+            title_left,
+            text="◆",
+            font=("Segoe UI", 14),
+            bg="#0f3460",
             fg="#00d9ff",
-        ).pack(side=tk.LEFT)
+        ).pack(side=tk.LEFT, padx=(5, 8))
+
+        title_label = tk.Label(
+            title_left,
+            text="Linux.do 刷帖助手 v8.0",
+            font=("Microsoft YaHei UI", 11, "bold"),
+            bg="#0f3460",
+            fg="#ffffff",
+        )
+        title_label.pack(side=tk.LEFT)
+        title_label.bind("<Button-1>", s._start_drag)
+        title_label.bind("<B1-Motion>", s._do_drag)
+
+        # 右侧按钮
+        btn_frame = tk.Frame(title_bar, bg="#0f3460")
+        btn_frame.pack(side=tk.RIGHT, padx=5)
+
+        # 最小化按钮
+        min_btn = tk.Label(
+            btn_frame,
+            text="─",
+            font=("Segoe UI", 12),
+            bg="#0f3460",
+            fg="#ffffff",
+            width=4,
+            cursor="hand2",
+        )
+        min_btn.pack(side=tk.LEFT, padx=2)
+        min_btn.bind("<Button-1>", lambda e: s._minimize())
+        min_btn.bind("<Enter>", lambda e: min_btn.config(bg="#1a5490"))
+        min_btn.bind("<Leave>", lambda e: min_btn.config(bg="#0f3460"))
+
+        # 关闭按钮
+        close_btn = tk.Label(
+            btn_frame,
+            text="✕",
+            font=("Segoe UI", 12),
+            bg="#0f3460",
+            fg="#ffffff",
+            width=4,
+            cursor="hand2",
+        )
+        close_btn.pack(side=tk.LEFT, padx=2)
+        close_btn.bind("<Button-1>", lambda e: s._close())
+        close_btn.bind("<Enter>", lambda e: close_btn.config(bg="#e94560"))
+        close_btn.bind("<Leave>", lambda e: close_btn.config(bg="#0f3460"))
+
+        # 状态显示
         s.status = tk.StringVar(value="就绪")
-        tk.Label(
-            top,
+        status_label = tk.Label(
+            btn_frame,
             textvariable=s.status,
-            font=("Microsoft YaHei UI", 10),
-            bg="#1a1a2e",
-            fg="#eaeaea",
-        ).pack(side=tk.RIGHT)
+            font=("Microsoft YaHei UI", 9),
+            bg="#0f3460",
+            fg="#00d9ff",
+        )
+        status_label.pack(side=tk.LEFT, padx=(0, 15))
+
+        # 内容区域
+        content = tk.Frame(s.rt, bg="#1a1a2e")
+        content.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
         # 用户信息栏
         info_frame = tk.LabelFrame(
-            s.rt,
+            content,
             text=" 用户信息 ",
             bg="#1a1a2e",
             fg="#00d9ff",
@@ -700,7 +813,7 @@ class GUI:
 
         # 升级进度面板（使用固定高度的Canvas实现滚动）
         progress_frame = tk.LabelFrame(
-            s.rt,
+            content,
             text=" 升级进度追踪 ",
             bg="#1a1a2e",
             fg="#00d9ff",
@@ -709,7 +822,7 @@ class GUI:
         progress_frame.pack(fill=tk.X, padx=15, pady=5)
 
         # 创建Canvas和滚动条
-        s.progress_canvas = tk.Canvas(progress_frame, bg="#1a1a2e", height=180, highlightthickness=0)
+        s.progress_canvas = tk.Canvas(progress_frame, bg="#1a1a2e", height=200, highlightthickness=0)
         s.progress_scrollbar = ttk.Scrollbar(progress_frame, orient="vertical", command=s.progress_canvas.yview)
         s.progress_inner = tk.Frame(s.progress_canvas, bg="#1a1a2e")
 
@@ -725,7 +838,7 @@ class GUI:
         s.progress_scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
 
         # 控制栏
-        ctrl = tk.Frame(s.rt, bg="#1a1a2e", pady=5)
+        ctrl = tk.Frame(content, bg="#1a1a2e", pady=5)
         ctrl.pack(fill=tk.X, padx=15)
         tk.Label(ctrl, text="代理:", bg="#1a1a2e", fg="#eaeaea").pack(side=tk.LEFT)
         s.proxy_var = tk.StringVar(value=s.cfg["proxy"])
@@ -760,7 +873,7 @@ class GUI:
         s.stop_btn.pack(side=tk.LEFT)
 
         # 主区域
-        main = tk.Frame(s.rt, bg="#1a1a2e")
+        main = tk.Frame(content, bg="#1a1a2e")
         main.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
 
         # 左侧 - 板块选择
@@ -937,7 +1050,11 @@ class GUI:
 
         # 创建表格头
         headers = ["指标", "初始值", "当前值", "目标值", "本次+"]
-        col_widths = [14, 10, 10, 10, 10]  # 增加列宽
+        # 列宽设置为0表示自动适应内容宽度
+        col_widths = [0, 0, 0, 0, 0]
+        # 每列的左右间距 (padx)
+        col_padx = [(10, 20), (10, 20), (10, 15), (10, 15), (10, 10)]
+
         for col, header in enumerate(headers):
             tk.Label(
                 s.progress_inner,
@@ -945,8 +1062,8 @@ class GUI:
                 bg="#1a1a2e",
                 fg="#00d9ff",
                 font=("Microsoft YaHei UI", 9, "bold"),
-                width=col_widths[col],
-            ).grid(row=0, column=col, padx=8, pady=3)
+                anchor="w",
+            ).grid(row=0, column=col, padx=col_padx[col], pady=5, sticky="w")
 
         # 创建数据行
         for row, req in enumerate(requirements[:8], start=1):
@@ -957,13 +1074,12 @@ class GUI:
             # 指标名
             tk.Label(
                 s.progress_inner,
-                text=name[:12],
+                text=name,
                 bg="#1a1a2e",
                 fg="#eaeaea",
                 font=("Microsoft YaHei UI", 9),
-                width=col_widths[0],
                 anchor="w",
-            ).grid(row=row, column=0, padx=8, pady=2)
+            ).grid(row=row, column=0, padx=col_padx[0], pady=3, sticky="w")
 
             # 初始值
             tk.Label(
@@ -972,8 +1088,8 @@ class GUI:
                 bg="#1a1a2e",
                 fg="#888888",
                 font=("Microsoft YaHei UI", 9),
-                width=col_widths[1],
-            ).grid(row=row, column=1, padx=8, pady=2)
+                anchor="w",
+            ).grid(row=row, column=1, padx=col_padx[1], pady=3, sticky="w")
 
             # 当前值（可更新）
             current_var = tk.StringVar(value=current)
@@ -983,8 +1099,8 @@ class GUI:
                 bg="#1a1a2e",
                 fg="#00ff88",
                 font=("Microsoft YaHei UI", 9, "bold"),
-                width=col_widths[2],
-            ).grid(row=row, column=2, padx=8, pady=2)
+                anchor="w",
+            ).grid(row=row, column=2, padx=col_padx[2], pady=3, sticky="w")
 
             # 目标值
             tk.Label(
@@ -993,8 +1109,8 @@ class GUI:
                 bg="#1a1a2e",
                 fg="#ffaa00",
                 font=("Microsoft YaHei UI", 9),
-                width=col_widths[3],
-            ).grid(row=row, column=3, padx=8, pady=2)
+                anchor="w",
+            ).grid(row=row, column=3, padx=col_padx[3], pady=3, sticky="w")
 
             # 本次增加
             added_var = tk.StringVar(value="+0")
@@ -1004,8 +1120,8 @@ class GUI:
                 bg="#1a1a2e",
                 fg="#00d9ff",
                 font=("Microsoft YaHei UI", 9, "bold"),
-                width=col_widths[4],
-            ).grid(row=row, column=4, padx=8, pady=2)
+                anchor="w",
+            ).grid(row=row, column=4, padx=col_padx[4], pady=3, sticky="w")
 
             # 保存引用
             s.req_labels[name] = {
